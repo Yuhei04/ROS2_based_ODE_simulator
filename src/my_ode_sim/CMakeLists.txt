@@ -27,6 +27,9 @@ include_directories(
 add_executable(odesim_node
   src/main.cpp
   src/localization.cpp
+  src/robot.cpp
+  src/lidar.cpp
+  src/world.cpp
 )
 
 ament_target_dependencies(odesim_node

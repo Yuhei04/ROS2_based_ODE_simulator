@@ -5,6 +5,9 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/opt/ros/humble/include",
+                "/opt/ros/humble/include/**",
+                "/home/ubuntu/odesim_ws/install/**",
+                "/home/ubuntu/odesim_ws/src/**",
                 "/home/ubuntu/ode-0.16.1/include",
                 "/home/ubuntu/ode-0.16.1/ode/src",
                 "/home/ubuntu/ode-0.16.1/drawstuff/src"
