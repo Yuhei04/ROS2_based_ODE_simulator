@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>my_ode_sim</name>
+  <version>0.0.1</version>
+  <description>ODE-based differential drive simulator with ROS2</description>
+
+  <maintainer email="you@example.com">Your Name</maintainer>
+  <license>MIT</license>
+
+  <!-- ★★★ 最重要 ★★★ -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <!-- これがないと install/lib が生成されない -->
+
+  <depend>rclcpp</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>        <!-- /odom 用 -->
+  <depend>sensor_msgs</depend>     <!-- /scan 用 -->
+  <depend>tf2</depend>             <!-- tf 用 -->
+  <depend>tf2_ros</depend>         <!-- tf broadcaster 用 -->
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
