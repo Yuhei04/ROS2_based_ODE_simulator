@@ -48,7 +48,13 @@ target_link_libraries(odesim_node
   X11 GL GLU m pthread rt dl
 )
 
+
 install(TARGETS odesim_node
   DESTINATION lib/${PROJECT_NAME})
+
+# ★ 追加：launch と config のインストール
+install(DIRECTORY launch config
+  DESTINATION share/${PROJECT_NAME}
+)
 
 ament_package()
