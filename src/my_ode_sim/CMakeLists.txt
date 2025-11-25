@@ -52,8 +52,7 @@ target_link_libraries(odesim_node
 install(TARGETS odesim_node
   DESTINATION lib/${PROJECT_NAME})
 
-# ★ 追加：launch と config のインストール
-install(DIRECTORY launch config
+install(DIRECTORY launch config rviz
   DESTINATION share/${PROJECT_NAME}
 )
 
