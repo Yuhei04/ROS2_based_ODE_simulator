@@ -4,8 +4,15 @@
 
 namespace world
 {
+    // ===== world の種類 =====
+    enum class WorldType {
+        SIMPLE,     // いままでの四角い壁 world
+        CORRIDOR    // 廊下 + 下駄箱 world
+    };
+
     // ODE world / space / contactgroup の初期化
-    void init();
+    // world_type によって環境を切り替える
+    void init(WorldType world_type);
 
     // 1 シミュレーションステップ進める（dSpaceCollide + dWorldStep）
     void step(dReal step_size);

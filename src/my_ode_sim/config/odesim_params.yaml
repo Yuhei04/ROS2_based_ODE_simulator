@@ -1,3 +1,3 @@
 ode_diffdrive_sim:
   ros__parameters:
-    use_3d_lidar: true
+    use_3d_lidar: false

@@ -6,8 +6,8 @@ namespace robot
     const dReal CHASSIS_L   = 0.6;
     const dReal CHASSIS_W   = 0.4;
     const dReal CHASSIS_H   = 0.2;
-    const dReal CHASSIS_X0  = -2.0;
-    const dReal CHASSIS_Y0  = -2.0;
+    const dReal CHASSIS_X0  = 0.5;  //ロボット初期位置
+    const dReal CHASSIS_Y0  = 0.4;
 
     const dReal WHEEL_RADIUS = 0.12;
     const dReal WHEEL_WIDTH  = 0.06;

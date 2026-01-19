@@ -12,14 +12,44 @@
 
 namespace world
 {
+    static WorldType g_world_type = WorldType::SIMPLE;
+    static void initSimpleWorld();
+    static void initCorridorWorld();
+    static void drawSimpleWorld();
+    static void drawCorridorWorld();
+
+
+    // ===== 廊下パラメータ（world 全体で共有）=====
+    static const dReal CORRIDOR_LEN = 20.0;  // 20m
+    static const dReal CORRIDOR_W   = 1.8;   // 廊下幅
+    static const dReal WALL_THICK  = 0.2;
+    static const dReal WALL_H      = 2.0;
+
+    // ===== simple world 用 ドア凹み =====
+    static const dReal SIMPLE_WALL_LEN   = 10.0;
+    static const dReal SIMPLE_WALL_W     = 1.8;
+
+    static const dReal SIMPLE_DOOR_X     = 5.0;   // 凹み中心
+    static const dReal SIMPLE_DOOR_WIDTH = 1.0;
+    static const dReal SIMPLE_DOOR_DEPTH = 0.6;
+
+    // ===== simple world 用 壁分割の長さ（描画でも使う）=====
+    static dReal simple_len1 = 0.0;
+    static dReal simple_len2 = 0.0;
+
+    // simple world 用 inner wall
+    static dGeomID wall1_inner = nullptr;
+
     // --- このモジュールだけで持つ ODE ハンドルたち ---
     static dWorldID      g_world;
     static dSpaceID      g_space;
     static dJointGroupID g_contactgroup;
 
-    // 壁 & 障害物
-    static dGeomID wall1, wall2, wall3, wall4;
-    static dGeomID obs1,  obs2;
+    // 壁
+    static dGeomID wall1, wall2, wall3;
+    
+    // 障害物
+    static dGeomID obs1 = nullptr;
 
     // --- 近接コールバック（Ray と通常接触） ---
     static void nearCallback(void* /*data*/, dGeomID o1, dGeomID o2)
@@ -69,7 +99,7 @@ namespace world
                 dContactSlip1 | dContactSlip2 |
                 dContactSoftERP | dContactSoftCFM | dContactApprox1;
 
-            contact[i].surface.mu        = 1.0;
+            contact[i].surface.mu        = dInfinity;
             contact[i].surface.slip1     = 0.001;
             contact[i].surface.slip2     = 0.001;
             contact[i].surface.soft_erp  = 1.0;
@@ -83,8 +113,10 @@ namespace world
     }
 
     // --- 初期化 ---
-    void init()
+    void init(WorldType type)
     {
+        g_world_type = type;
+
         dInitODE();
 
         g_world = dWorldCreate();
@@ -93,29 +125,110 @@ namespace world
 
         dWorldSetGravity(g_world, 0, 0, -9.81);
 
+        dWorldSetLinearDamping(g_world, 0.1);
+        dWorldSetAngularDamping(g_world, 0.1);
+
         // 地面
         dCreatePlane(g_space, 0, 0, 1, 0);
-
-        // --- 壁 ---
-        wall1 = dCreateBox(g_space, 0.2, 10.0, 2.0);
-        dGeomSetPosition(wall1, -5.0, 0.0, 1.0);
-
-        wall2 = dCreateBox(g_space, 0.2, 10.0, 2.0);
-        dGeomSetPosition(wall2,  5.0, 0.0, 1.0);
-
-        wall3 = dCreateBox(g_space, 10.0, 0.2, 2.0);
-        dGeomSetPosition(wall3, 0.0, -5.0, 1.0);
-
-        wall4 = dCreateBox(g_space, 10.0, 0.2, 2.0);
-        dGeomSetPosition(wall4, 0.0,  5.0, 1.0);
-
-        // --- 障害物 ---
-        obs1 = dCreateBox(g_space, 1.0, 1.0, 1.5);
-        dGeomSetPosition(obs1, 0.0, 0.0, 0.75);
-
-        obs2 = dCreateBox(g_space, 1.5, 0.3, 1.0);
-        dGeomSetPosition(obs2, 2.0, 1.0, 0.5);
+        
+        // world切り替え
+        if (g_world_type == WorldType::SIMPLE) {
+            initSimpleWorld();
+        } else {
+            initCorridorWorld();
+        }
     }
+
+    static void initSimpleWorld()
+    {
+        // CorridorWorld と同じ座標系：
+        // X: 廊下方向, Y: 左右（+が左壁）, Z: 上
+
+        // 左壁の凹み位置（X方向）
+        // 凹み区間は「壁を置かない」
+        simple_len1 = SIMPLE_DOOR_X - SIMPLE_DOOR_WIDTH / 2.0;
+        simple_len2 = SIMPLE_WALL_LEN - (SIMPLE_DOOR_X + SIMPLE_DOOR_WIDTH / 2.0);
+
+        // 念のため（負になると描画も衝突もおかしくなる）
+        if (simple_len1 < 0) simple_len1 = 0;
+        if (simple_len2 < 0) simple_len2 = 0;
+
+        // 左壁（前半）
+        if (simple_len1 > 0.001) {
+            wall1 = dCreateBox(g_space, simple_len1, WALL_THICK, WALL_H);
+            dGeomSetPosition(
+                wall1,
+                simple_len1 / 2.0,            // X中心
+                +SIMPLE_WALL_W / 2.0,         // 左壁（+Y）
+                WALL_H / 2.0
+            );
+        } else {
+            wall1 = nullptr;
+        }
+
+        // 左壁（後半）
+        if (simple_len2 > 0.001) {
+            wall2 = dCreateBox(g_space, simple_len2, WALL_THICK, WALL_H);
+            dGeomSetPosition(
+                wall2,
+                (SIMPLE_DOOR_X + SIMPLE_DOOR_WIDTH / 2.0) + simple_len2 / 2.0,
+                +SIMPLE_WALL_W / 2.0,
+                WALL_H / 2.0
+            );
+        } else {
+            wall2 = nullptr;
+        }
+
+        // 右壁（一本）
+        wall3 = dCreateBox(g_space, SIMPLE_WALL_LEN, WALL_THICK, WALL_H);
+        dGeomSetPosition(
+            wall3,
+            SIMPLE_WALL_LEN / 2.0,
+            -SIMPLE_WALL_W / 2.0,            // 右壁（-Y）
+            WALL_H / 2.0
+        );
+
+        // simple world では inner wall は不要（使わないなら nullptr のままでOK）
+        wall1_inner = nullptr;
+
+        // 障害物なし
+        obs1 = nullptr;
+    }
+
+
+
+    static void initCorridorWorld()
+    {
+        // 左壁
+        wall1 = dCreateBox(g_space, CORRIDOR_LEN, WALL_THICK, WALL_H);
+        dGeomSetPosition(wall1,
+            CORRIDOR_LEN / 2.0,
+            +CORRIDOR_W / 2.0,
+            WALL_H / 2.0);
+
+        // 右壁
+        wall2 = dCreateBox(g_space, CORRIDOR_LEN, WALL_THICK, WALL_H);
+        dGeomSetPosition(wall2,
+            CORRIDOR_LEN / 2.0,
+            -CORRIDOR_W / 2.0,
+            WALL_H / 2.0);
+
+        // 終端壁
+        wall3 = dCreateBox(g_space,
+            WALL_THICK, CORRIDOR_W, WALL_H);
+        dGeomSetPosition(wall3,
+            CORRIDOR_LEN + 0.1,
+            0.0,
+            WALL_H / 2.0);
+
+        // 下駄箱
+        obs1 = dCreateBox(g_space, 0.6, 0.4, 1.8);
+        dGeomSetPosition(obs1,
+            12.0,
+            +CORRIDOR_W / 2.0 - 0.2,
+            0.9);
+    }
+
 
     // --- 1ステップ進める ---
     void step(dReal step_size)
@@ -128,31 +241,53 @@ namespace world
     // --- 描画（壁・障害物） ---
     void draw()
     {
-        if (wall1) {
-            dReal s1[3] = {0.2, 10.0, 2.0};
-            dsDrawBox(dGeomGetPosition(wall1), dGeomGetRotation(wall1), s1);
-        }
-        if (wall2) {
-            dReal s2[3] = {0.2, 10.0, 2.0};
-            dsDrawBox(dGeomGetPosition(wall2), dGeomGetRotation(wall2), s2);
-        }
-        if (wall3) {
-            dReal s3[3] = {10.0, 0.2, 2.0};
-            dsDrawBox(dGeomGetPosition(wall3), dGeomGetRotation(wall3), s3);
-        }
-        if (wall4) {
-            dReal s4[3] = {10.0, 0.2, 2.0};
-            dsDrawBox(dGeomGetPosition(wall4), dGeomGetRotation(wall4), s4);
-        }
-        if (obs1) {
-            dReal o1[3] = {1.0, 1.0, 1.5};
-            dsDrawBox(dGeomGetPosition(obs1), dGeomGetRotation(obs1), o1);
-        }
-        if (obs2) {
-            dReal o2[3] = {1.5, 0.3, 1.0};
-            dsDrawBox(dGeomGetPosition(obs2), dGeomGetRotation(obs2), o2);
+        if (g_world_type == WorldType::SIMPLE) {
+            drawSimpleWorld();
+        } else {
+            drawCorridorWorld();
         }
     }
+
+    static void drawSimpleWorld()
+    {
+        static bool once = true;
+        if (once) {
+            printf("[drawSimpleWorld] called\n");
+            printf("simple_len1=%.3f simple_len2=%.3f\n", simple_len1, simple_len2);
+            once = false;
+        }
+
+        dsSetColor(1, 1, 1);
+
+        if (wall1) {
+            dReal s1[3] = {simple_len1, WALL_THICK, WALL_H};
+            dsDrawBox(dGeomGetPosition(wall1), dGeomGetRotation(wall1), s1);
+        }
+
+        if (wall2) {
+            dReal s2[3] = {simple_len2, WALL_THICK, WALL_H};
+            dsDrawBox(dGeomGetPosition(wall2), dGeomGetRotation(wall2), s2);
+        }
+
+        if (wall3) {
+            dReal s3[3] = {SIMPLE_WALL_LEN, WALL_THICK, WALL_H};
+            dsDrawBox(dGeomGetPosition(wall3), dGeomGetRotation(wall3), s3);
+        }
+    }
+
+    static void drawCorridorWorld()
+    {
+        dReal s[3] = {CORRIDOR_LEN, WALL_THICK, WALL_H};
+        dsDrawBox(dGeomGetPosition(wall1), dGeomGetRotation(wall1), s);
+        dsDrawBox(dGeomGetPosition(wall2), dGeomGetRotation(wall2), s);
+
+        dReal e[3] = {WALL_THICK, CORRIDOR_W, WALL_H};
+        dsDrawBox(dGeomGetPosition(wall3), dGeomGetRotation(wall3), e);
+
+        dReal o[3] = {0.6, 0.4, 1.8};
+        dsDrawBox(dGeomGetPosition(obs1), dGeomGetRotation(obs1), o);
+    }
+
 
     // --- 終了処理 ---
     void shutdown()

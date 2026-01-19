@@ -19,9 +19,9 @@ find_package(tf2_ros REQUIRED)
 include_directories(
   include
   include/my_ode_sim
-  /home/ubuntu/ode-0.16.1/ode/src
-  /home/ubuntu/ode-0.16.1/include
-  /home/ubuntu/ode-0.16.1/drawstuff/src
+  /home/yuhei/ode-0.16.2/ode/src
+  /home/yuhei/ode-0.16.2/include
+  /home/yuhei/ode-0.16.2/drawstuff/src
 )
 
 add_executable(odesim_node
@@ -43,8 +43,8 @@ ament_target_dependencies(odesim_node
 
 # ODE / drawstuff ライブラリ（v05 で使っていたものと同じ）
 target_link_libraries(odesim_node
-  /home/ubuntu/ode-0.16.1/drawstuff/src/.libs/libdrawstuff.a
-  /home/ubuntu/ode-0.16.1/ode/src/.libs/libode.a
+  /home/yuhei/ode-0.16.2/drawstuff/src/.libs/libdrawstuff.a
+  /home/yuhei/ode-0.16.2/ode/src/.libs/libode.a
   X11 GL GLU m pthread rt dl
 )
 

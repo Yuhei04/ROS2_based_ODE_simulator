@@ -223,8 +223,8 @@ static void command(int cmd)
 
 static void start()
 {
-    float xyz[3] = { 6.0f, -6.0f, 4.0f };
-    float hpr[3] = { 135.0f, -30.0f, 0.0f };
+    float xyz[3] = { -3.0f, 0.0f, 4.0f };
+    float hpr[3] = { 0.0f, -25.0f, 0.0f };
     dsSetViewpoint(xyz, hpr);
 }
 
@@ -240,7 +240,7 @@ int main(int argc, char** argv)
         "/cmd_vel", 10, cmdVelCallback);
 
     // --- LiDAR モードを ROS2 パラメータから決める ---
-    bool use_3d_lidar = true;
+    bool use_3d_lidar = false;
     g_node->declare_parameter<bool>("use_3d_lidar", use_3d_lidar);
     g_node->get_parameter("use_3d_lidar", use_3d_lidar);
 
@@ -259,8 +259,18 @@ int main(int argc, char** argv)
     g_odom_pub = g_node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
     g_tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(g_node);
 
-    // --- ODE world / walls / obstacles 初期化 ---
-    world::init();
+    // --- world type を ROS2 パラメータで決める ---
+    std::string world_type;
+    g_node->declare_parameter<std::string>("world_type", "corridor");
+    g_node->get_parameter("world_type", world_type);
+
+    if (world_type == "simple") {
+        RCLCPP_INFO(g_node->get_logger(), "World type: SIMPLE");
+        world::init(world::WorldType::SIMPLE);
+    } else {
+        RCLCPP_INFO(g_node->get_logger(), "World type: CORRIDOR");
+        world::init(world::WorldType::CORRIDOR);
+    }
 
     // --- ロボット生成（シャーシ + 車輪 + キャスタ） ---
     robot::create(world::getWorld(), world::getSpace());
@@ -278,7 +288,7 @@ int main(int argc, char** argv)
     fn.step    = &simLoop;
     fn.command = &command;
     fn.stop    = NULL;
-    fn.path_to_textures = "/home/ubuntu/ode-0.16.1/drawstuff/textures";
+    fn.path_to_textures = "/home/yuhei/ode-0.16.2/drawstuff/textures";
 
     dsSimulationLoop(argc, argv, 800, 600, &fn);
 
